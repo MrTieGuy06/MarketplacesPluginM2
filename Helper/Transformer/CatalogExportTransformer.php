@@ -1464,6 +1464,10 @@ class CatalogExportTransformer extends AbstractHelper implements ValueType
             return;
         }
 
+        if ($this->isEmptyOptionValue($value, $attribute)) {
+            return;
+        }
+
         $titleArray                     = $this->getTranslatedAttributeTitles($code, $attribute);
 
         if (is_array($value)) {
@@ -1509,6 +1513,30 @@ class CatalogExportTransformer extends AbstractHelper implements ValueType
                 ];
             }
         }
+    }
+
+    /**
+     * Check whether a raw value of '0' for an attribute with options (such as a dropdown) does not refer to an existing option.
+     * Some imports store '0' instead of no value for an empty dropdown, which should not be exported.
+     * Attributes that do have an option for '0' (such as Yes/No attributes) are not affected.
+     *
+     * @param mixed $value
+     * @param Attribute $attribute
+     * @return bool
+     */
+    protected function isEmptyOptionValue($value, $attribute) : bool
+    {
+        if (($value !== '0' && $value !== 0) || !$attribute->usesSource()) {
+            return false;
+        }
+
+        try {
+            $optionText     = $attribute->getSource()->getOptionText($value);
+        } catch (Throwable $e) {
+            return false;
+        }
+
+        return $optionText === false || $optionText === null || $optionText === [];
     }
 
     /**
